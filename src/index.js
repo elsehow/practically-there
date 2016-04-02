@@ -1,7 +1,5 @@
 const u       = require('./utils.js')
 const hyphy   = require('hyphy')
-const Kefir   = require('kefir')
-const flatten = require('lodash.flatten')
 
 module.exports = (log, identity, payload) => {
 
@@ -44,8 +42,6 @@ module.exports = (log, identity, payload) => {
         })
       })
       .filter(u.not(u.empty))
-      //.bufferBy(myAnnounceS)
-      //.sampledBy(myAnnounceS)
     ,
 
     // and a function to announce
