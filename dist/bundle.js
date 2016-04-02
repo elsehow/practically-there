@@ -20963,8 +20963,7 @@ var log = swarmlog({
   db: memdb(),
   valueEncoding: 'json',
   hubs: [
-    'http://localhost:8080',
-    'http://localhost:8081'
+    'http://localhost:8080'
   ]
 })
 
@@ -20977,15 +20976,11 @@ there.presenceS.onValue(ps => {
   var names = ps.map(p => p.value.presence.verified.name)
   document.body.innerHTML = name + JSON.stringify(names)
 })
-there.announce()
-log.createReadStream({live:true}).on('data', node => {
-  console.log(node)
-})
-//setInterval(there.announce,1000)
+setInterval(there.announce,3000)
 console.log('launched')
 
 },{"../src/index.js":293,"./keys.json":138,"chloride/browser":148,"halite":174,"hyphy":184,"memdb":230,"random-string":248,"swarmlog":276}],138:[function(require,module,exports){
-module.exports={"curve":"ed25519","public":"Zvc5BNyOhRoELOev5D11/OjHNS/kdjJJvY26r0b44n0=.ed25519","private":"dEzqGyZgc6J38qghvDtvKBhvQIhcXIbLf8J04ipVKY1m9zkE3I6FGgQs56/kPXX86Mc1L+R2Mkm9jbqvRvjifQ==.ed25519","id":"@Zvc5BNyOhRoELOev5D11/OjHNS/kdjJJvY26r0b44n0=.ed25519"}
+module.exports={"curve":"ed25519","public":"hk8pfb+l1zoSHT+ea4yZiL/CNoDZDBNO6jej8U8hNXM=.ed25519","private":"+8u4P3c+TPeywENIkGKqPtDwS/YPAwSa3FNsrIG4JdeGTyl9v6XXOhIdP55rjJmIv8I2gNkME07qN6PxTyE1cw==.ed25519","id":"@hk8pfb+l1zoSHT+ea4yZiL/CNoDZDBNO6jej8U8hNXM=.ed25519"}
 
 },{}],139:[function(require,module,exports){
 (function (process){
@@ -43489,9 +43484,12 @@ module.exports = (log, identity, payload) => {
     presenceS: notMySeeS
       .scan(u.accum, [])
       .map(ns => {
-        return ns.filter(n => {
-          return n.links[0] === lastAnnounce.key
-        })
+        if (lastAnnounce) {
+          return ns.filter(n => {
+            return n.links[0] === lastAnnounce.key
+          })
+        }
+        return []
       })
       .filter(u.not(u.empty))
     ,

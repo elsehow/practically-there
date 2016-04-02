@@ -10,8 +10,7 @@ var log = swarmlog({
   db: memdb(),
   valueEncoding: 'json',
   hubs: [
-    'http://localhost:8080',
-    'http://localhost:8081'
+    'http://localhost:8080'
   ]
 })
 
@@ -24,9 +23,5 @@ there.presenceS.onValue(ps => {
   var names = ps.map(p => p.value.presence.verified.name)
   document.body.innerHTML = name + JSON.stringify(names)
 })
-there.announce()
-log.createReadStream({live:true}).on('data', node => {
-  console.log(node)
-})
-//setInterval(there.announce,1000)
+setInterval(there.announce,3000)
 console.log('launched')

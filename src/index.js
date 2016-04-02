@@ -26,9 +26,31 @@ module.exports = (log, identity, payload) => {
     u.see(log, identity, m.key, payload)
   }
 
+  function del (k, cb) {
+    log.db.db.del('!nodes!'+k, cb)
+  }
+
+  function deleteOld () {
+    myAnnounceS.scan(u.accum, [])
+      .filter(as => {
+        if (lastAnnounce) {
+          return as.filter(a => {
+            return a.key !== lastAnnounce.key
+          })
+        }
+        return
+      })
+      .onValue(as => {
+        as.forEach(as => {
+          del(as.key, _ => {})
+        })
+      })
+  }
+
   // side effects -----------------------------
   // see all announces that aren't mine
   notMyAnnounceS.onValue(see_)
+  myAnnounceS.onValue(deleteOld)
 
   return {
 
@@ -37,9 +59,12 @@ module.exports = (log, identity, payload) => {
     presenceS: notMySeeS
       .scan(u.accum, [])
       .map(ns => {
-        return ns.filter(n => {
-          return n.links[0] === lastAnnounce.key
-        })
+        if (lastAnnounce) {
+          return ns.filter(n => {
+            return n.links[0] === lastAnnounce.key
+          })
+        }
+        return []
       })
       .filter(u.not(u.empty))
     ,
@@ -48,13 +73,18 @@ module.exports = (log, identity, payload) => {
     announce: announce_
     ,
 
+    announceS: announceS
+    ,
+
     off: () => {
       notMyAnnounceS.offValue(see_)
     },
 
     on: () => {
       notMyAnnounceS.onValue(see_)
-    }
+    },
+
+    deleteOld: deleteOld,
   }
 
 }
