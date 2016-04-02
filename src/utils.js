@@ -1,8 +1,11 @@
 const halite = require('halite')
 const equal  = require('deep-equal')
-const md5     = require('md5')
+const md5    = require('md5')
+var i      = 0
 
 function msg (kp, type, payload) {
+  payload.nonce=i
+  i+=1
   var str = JSON.stringify(payload)
   var sk = halite.sk(kp)
   var signed = halite.sign(str, sk)
@@ -48,11 +51,6 @@ function announce (log, kp, payload, cb) {
 
 function see (log, kp, mkey, payload, cb) {
   var m = msg(kp, 'see', payload)
-  log.add([mkey], m, cb)
-}
-
-function ack (log, kp, mkey, payload, cb) {
-  var m = msg(kp, 'ack', payload)
   log.add([mkey], m, cb)
 }
 
@@ -110,21 +108,15 @@ function skipDuplicatesDeep () {
 function uniqueIds (rxS) {
   return rxS
     .map(ns => ns.map(presence))
-    //.scan(keyByPubkeys, {})
-    //.map(listify)
-    //.filter(skipDuplicatesDeep())
+    .scan(keyByPubkeys, {})
+    .map(listify)
+    .filter(skipDuplicatesDeep())
 }
 
 
 function responses (m, ms) {
   var k = m.key
   return ms.filter(m => m.links[0] === k)
-}
-
-function originalAndResponses (m, ms) {
-  var rs = responses(m, ms)
-  rs.push(m)
-  return rs
 }
 
 function last (l) {
@@ -143,12 +135,8 @@ function verified (nS) {
     .filter(m => !!m.value.presence.verified)
 }
 
-function addressedTo (child, parent) {
-  console.log('hi addressed to here', child.length)
-  if (parent.key === child.links[0]) {
-    return child
-  }
-  return
+function addressedTo (parent, children) {
+  return children.filter(c => c.links[0] === parent.key)
 }
 
 module.exports = {
@@ -156,7 +144,6 @@ module.exports = {
   presence: presence,
   announce: announce,
   see: see,
-  ack: ack,
   type: type,
   belongsTo: belongsTo,
   deserialize: deserialize,
@@ -164,9 +151,9 @@ module.exports = {
   empty: empty,
   last: last,
   accum: accum,
-  uniqueIds: uniqueIds, 
-  originalAndResponses: originalAndResponses,
+  uniqueIds: uniqueIds,
   truthy: truthy,
   verified: verified,
   addressedTo: addressedTo,
+  skipDuplicatesDeep: skipDuplicatesDeep,
 }

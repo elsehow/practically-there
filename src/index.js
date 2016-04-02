@@ -8,54 +8,57 @@ module.exports = (log, identity, payload) => {
   var nodeS = u.verified(hyphy(log))
   var announceS = nodeS.filter(u.type('announce'))
   var seeS = nodeS.filter(u.type('see'))
-  var ackS = nodeS.filter(u.type('ack'))
 
   var mine = u.belongsTo(identity.publicKey)
   var myAnnounceS = announceS.filter(mine)
-  var mySeeS = seeS.filter(mine)
+  var notMyAnnounceS = announceS.filter(u.not(mine))
+  //var mySeeS = seeS.filter(mine)
+  // things others publish
+  var notMySeeS = seeS.filter(u.not(mine))
+
+  var lastAnnounce = null
 
   function announce_ () {
-    u.announce(log, identity, payload)
+    u.announce(log, identity, payload, (err, node) => {
+      lastAnnounce = node
+    })
   }
 
   function see_ (m) {
     u.see(log, identity, m.key, payload)
   }
 
-  function ack_ (m) {
-    u.ack(log, identity, m.key, payload)
-  }
-
-  // responses to my announces
-  var seeToMeS = seeS
-      .sampledBy(myAnnounceS)
-      .combine(myAnnounceS, u.addressedTo)
-      .filter(u.truthy)
-  // acks to my sees
-  var ackToMeS = ackS
-      .combine(seeS.filter(mine), u.addressedTo)
-      .filter(u.truthy)
-  // all reactions to my actions
-  var reactions = Kefir.merge([
-    seeToMeS,
-    ackToMeS,
-    announceS.filter(mine),
-    seeS.filter(mine)
-  ])
-
   // side effects -----------------------------
   // see all announces that aren't mine
-  announceS.filter(u.not(mine)).onValue(see_)
-  // ack sees that relate to one of my announces
-  seeToMeS.onValue(ack_)
+  notMyAnnounceS.onValue(see_)
 
   return {
+
     // presenceS is a set of identities
     // the union of all reactions i observe
-    presenceS: reactions //u.uniqueIds(reactions)
+    presenceS: notMySeeS
+      .scan(u.accum, [])
+      .map(ns => {
+        return ns.filter(n => {
+          return n.links[0] === lastAnnounce.key
+        })
+      })
+      .filter(u.not(u.empty))
+      //.bufferBy(myAnnounceS)
+      //.sampledBy(myAnnounceS)
     ,
+
     // and a function to announce
-    announce: announce_,
+    announce: announce_
+    ,
+
+    off: () => {
+      notMyAnnounceS.offValue(see_)
+    },
+
+    on: () => {
+      notMyAnnounceS.onValue(see_)
+    }
   }
 
 }
